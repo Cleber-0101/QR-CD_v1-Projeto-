@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador de Etiquetas por Cor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; min-height: 100vh; color: #1a1a2e; }
+  header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 28px 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
+  header p  { color: #a0aec0; font-size: 0.875rem; margin-top: 4px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 20px; }
+  .search-section { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 28px; }
+  .search-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #718096; margin-bottom: 12px; }
+  .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #searchInput { flex: 1; min-width: 200px; padding: 14px 20px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1rem; outline: none; transition: border-color 0.2s; background: #f7fafc; }
+  #searchInput:focus { border-color: #667eea; background: white; }
+  .btn-search { padding: 14px 28px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap; }
+  .btn-search:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+  .btn-clear { padding: 14px 20px; background: #edf2f7; color: #4a5568; border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+  .btn-clear:hover { background: #e2e8f0; }
+  .chips-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #718096; margin: 20px 0 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 7px 16px; border-radius: 50px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .chip:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .chip.active { border-color: #1a1a2e; box-shadow: 0 0 0 3px rgba(26,26,46,0.15); }
+  .chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+
+  .print-bar { display: none; background: linear-gradient(135deg, #1a1a2e, #2d3748); color: white; border-radius: 14px; padding: 16px 22px; margin-bottom: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); animation: slideIn 0.2s ease; }
+  .print-bar.visible { display: flex; }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  .print-bar-left { display: flex; align-items: center; gap: 14px; }
+  .sel-count { background: #e67e22; color: white; border-radius: 12px; padding: 6px 14px; font-size: 1.1rem; font-weight: 800; flex-shrink: 0; }
+  .print-bar-info strong { color: #90cdf4; font-size: 0.95rem; }
+  .print-bar-info span  { color: #a0aec0; font-size: 0.78rem; display: block; margin-top: 2px; }
+  .print-bar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn-selall { padding: 10px 16px; background: rgba(255,255,255,0.1); color: #cbd5e0; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+  .btn-selall:hover { background: rgba(255,255,255,0.2); color: white; }
+  .btn-deselect { padding: 10px 16px; background: rgba(255,255,255,0.06); color: #a0aec0; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+  .btn-deselect:hover { background: rgba(255,255,255,0.15); color: white; }
+  .btn-zebra { padding: 11px 24px; background: linear-gradient(135deg, #e67e22, #d35400); color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap; }
+  .btn-zebra:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(230,126,34,0.45); }
+  .btn-print { padding: 11px 24px; background: linear-gradient(135deg, #38b2ac, #319795); color: white; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.15s; white-space: nowrap; }
+  .btn-print:hover { transform: translateY(-1px); }
+
+  .stats-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .stats-text { font-size: 0.875rem; color: #718096; }
+  .stats-text strong { color: #2d3748; }
+  .sort-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #718096; }
+  #sortSelect { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: white; color: #2d3748; cursor: pointer; outline: none; }
+
+  .table-wrap { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #f7fafc; padding: 14px 16px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #718096; border-bottom: 2px solid #e2e8f0; }
+  thead th.th-qty { width: 150px; text-align: center; background: #fffbeb; color: #c05621; }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8f9ff; }
+  tbody tr.has-qty { background: #fffbeb !important; }
+  tbody tr.has-qty:hover { background: #fef3c7 !important; }
+  tbody td { padding: 11px 16px; font-size: 0.9rem; color: #2d3748; vertical-align: middle; }
+  .td-page { color: #a0aec0; font-size: 0.8rem; }
+  .td-pr   { font-family: 'Courier New', monospace; font-weight: 700; font-size: 0.88rem; }
+  .td-code { font-family: 'Courier New', monospace; font-size: 0.82rem; color: #667eea; }
+  .size-badge { display: inline-block; padding: 3px 10px; background: #edf2f7; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #4a5568; }
+  .color-badge { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; }
+
+  /* ── COLUNA QUANTIDADE ── */
+  .td-qty { text-align: center; }
+  .qty-wrap { display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .qty-btn { width: 28px; height: 28px; border-radius: 7px; border: none; background: #e2e8f0; color: #4a5568; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; user-select: none; line-height: 1; }
+  .qty-btn.minus:hover { background: #fed7d7; color: #c53030; }
+  .qty-btn.plus:hover  { background: #c6f6d5; color: #276749; }
+  .qty-input { width: 56px; padding: 5px 6px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: #2d3748; outline: none; transition: border-color 0.2s; -moz-appearance: textfield; }
+  .qty-input::-webkit-inner-spin-button, .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .qty-input:focus { border-color: #667eea; }
+  .qty-input.active { border-color: #e67e22; background: #fff7ed; color: #c05621; }
+
+  .empty { text-align: center; padding: 60px 20px; color: #a0aec0; }
+  .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty h3 { font-size: 1.1rem; color: #718096; }
+  .empty p  { font-size: 0.875rem; margin-top: 6px; }
+  .hint-text { font-size: 0.75rem; color: #a0aec0; margin-top: 10px; text-align: center; }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: #2d3748; color: white; padding: 14px 26px; border-radius: 12px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.3); transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; z-index: 9999; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.success { background: linear-gradient(135deg, #38a169, #276749); }
+  .toast.error   { background: linear-gradient(135deg, #e53e3e, #c53030); }
+
+  @media print {
+    @page { size: 100mm 30mm; margin: 0; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body > * { display: none !important; }
+    #printArea { display: block !important; }
+    .lp-label { box-shadow: none !important; border: none !important; }
+  }
+  #printArea { display: none; }
+  .lp-label { width:100mm; height:30mm; padding:2mm 3mm; font-family:'Courier New',monospace; display:flex; flex-direction:row; align-items:center; gap:3mm; box-sizing:border-box; overflow:hidden; page-break-after:always; break-after:page; }
+  .lp-label:last-child { page-break-after:avoid; break-after:avoid; }
+  .lp-qr-col { flex-shrink:0; width:24mm; height:24mm; display:flex; align-items:center; justify-content:center; }
+  .lp-qr-col canvas, .lp-qr-col img { width:24mm !important; height:24mm !important; display:block; image-rendering:pixelated; }
+  .lp-text-col { flex:1; display:flex; flex-direction:column; justify-content:center; gap:1mm; overflow:hidden; }
+  .lp-tam { font-size:11pt; font-weight:900; letter-spacing:2px; white-space:nowrap; line-height:1; }
+  .lp-pr  { font-size:8pt; font-weight:700; letter-spacing:0.5px; white-space:nowrap; line-height:1; }
+  .lp-code{ font-size:6.5pt; color:#222; letter-spacing:0.2px; white-space:nowrap; line-height:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏷️ Buscador de Etiquetas por Cor</h1>
+  <p>147 etiquetas · 17 cores · defina a quantidade e exporte para Zebra</p>
+</header>
+
+<div class="container">
+  <div class="search-section">
+    <div class="search-label">Buscar por cor</div>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Digite uma cor (ex: PRETO, BRANCO, PINK…)" autocomplete="off" />
+      <button class="btn-search" onclick="doSearch()">🔍 Buscar</button>
+      <button class="btn-clear"  onclick="clearSearch()">✕ Limpar</button>
+    </div>
+    <div class="chips-label">Selecione uma cor</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="print-bar" id="printBar">
+    <div class="print-bar-left">
+      <div class="sel-count" id="selCount">0 cópias</div>
+      <div class="print-bar-info">
+        <strong id="printBarTitle">prontas para imprimir</strong>
+        <span id="printBarDetail">—</span>
+      </div>
+    </div>
+    <div class="print-bar-actions">
+      <button class="btn-selall"   onclick="selectAll()">☑ Marcar todas (qty 1)</button>
+      <button class="btn-deselect" onclick="deselectAll()">✕ Zerar quantidades</button>
+      <button class="btn-zebra"    onclick="doZebra()">🦓 Exportar Zebra (.txt)</button>
+      <button class="btn-print"    onclick="doPrint()">🖨️ Imprimir normal</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stats-text" id="statsText">Selecione ou pesquise uma cor para começar</div>
+    <div class="sort-row">
+      Ordenar:
+      <select id="sortSelect" onchange="renderTable()">
+        <option value="page">Página</option>
+        <option value="pr">Código PR</option>
+        <option value="size">Tamanho</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="tableWrap">
+    <div class="empty">
+      <div class="empty-icon">🎨</div>
+      <h3>Nenhuma busca realizada</h3>
+      <p>Clique em uma cor acima ou digite no campo de busca</p>
+    </div>
+  </div>
+
+  <p class="hint-text" id="hintText" style="display:none">
+    💡 Digite a quantidade na coluna <strong>Qtd</strong> ou use os botões + e − · etiquetas com quantidade ficam destacadas em amarelo
+  </p>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const RAW = [{"page":1,"pr_code":"PR210794021","full_code":"04-24-01-317-005-VERMELHO","color":"VERMELHO","size":"GG"},{"page":2,"pr_code":"PR210794021","full_code":"04-24-01-317-005-VERMELHO","color":"VERMELHO","size":"GG"},{"page":3,"pr_code":"PR210794032","full_code":"04-24-01-320-002-PRETO","color":"PRETO","size":null},{"page":4,"pr_code":"PR210794032","full_code":"04-24-01-320-002-PRETO","color":"PRETO","size":null},{"page":5,"pr_code":"PR210794032","full_code":"04-24-01-320-002-PRETO","color":"PRETO","size":null},{"page":6,"pr_code":"PR210794036","full_code":"04-24-01-320-009-LARANJA","color":"LARANJA","size":"GG"},{"page":7,"pr_code":"PR210794037","full_code":"04-24-01-321-043-PINK","color":"PINK","size":null},{"page":8,"pr_code":"PR210794056","full_code":"04-24-01-332-021-CAQUI","color":"CAQUI","size":"G"},{"page":9,"pr_code":"PR210794056","full_code":"04-24-01-332-021-CAQUI","color":"CAQUI","size":null},{"page":10,"pr_code":"PR210794057","full_code":null,"color":null,"size":null},{"page":11,"pr_code":"PR210794067","full_code":"04-24-01-344-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":12,"pr_code":"PR210794067","full_code":"04-24-01-344-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":13,"pr_code":"PR210794067","full_code":"04-24-01-344-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":14,"pr_code":"PR210794069","full_code":"04-24-01-348-055-FERRUGEM","color":"FERRUGEM","size":null},{"page":15,"pr_code":"PR210794069","full_code":"04-24-01-348-055-FERRUGEM","color":"FERRUGEM","size":null},{"page":16,"pr_code":"PR210794085","full_code":"04-24-02-004-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":17,"pr_code":"PR210794252","full_code":"04-26-05-293-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":18,"pr_code":"PR210794260","full_code":null,"color":null,"size":"PADO"},{"page":19,"pr_code":"PR210794304","full_code":"04-26-05-344-023-KRAFT","color":"KRAFT","size":null},{"page":20,"pr_code":"PR210794546","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":21,"pr_code":"PR210794546","full_code":"04-23-02-435-043-PINK","color":"PINK","size":"P"},{"page":22,"pr_code":"PR210794546","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":23,"pr_code":"PR210794546","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":24,"pr_code":"PR210794547","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":25,"pr_code":"PR210794547","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":26,"pr_code":"PR210794547","full_code":"04-23-02-435-043-PINK","color":"PINK","size":null},{"page":27,"pr_code":"PR210794548","full_code":"04-23-02-435-043-PINK","color":"PINK","size":"G"},{"page":28,"pr_code":"PR210794551","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"P"},{"page":29,"pr_code":"PR210794551","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"P"},{"page":30,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":31,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":32,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":33,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":34,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":35,"pr_code":"PR210794553","full_code":"04-23-02-436-001-BRANCO","color":"BRANCO","size":"G"},{"page":36,"pr_code":"PR210794573","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"P"},{"page":37,"pr_code":"PR210794574","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"M"},{"page":38,"pr_code":"PR210794574","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"M"},{"page":39,"pr_code":"PR210794575","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"G"},{"page":40,"pr_code":"PR210794575","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"G"},{"page":41,"pr_code":"PR210794575","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"G"},{"page":42,"pr_code":"PR210794575","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"G"},{"page":43,"pr_code":"PR210794575","full_code":"04-23-02-447-001-BRANCO","color":"BRANCO","size":"G"},{"page":44,"pr_code":"PR210794657","full_code":"04-23-06-116-043-PINK","color":"PINK","size":"P"},{"page":45,"pr_code":"PR210794658","full_code":"04-23-06-116-043-PINK","color":"PINK","size":null},{"page":46,"pr_code":"PR210794658","full_code":"04-23-06-116-043-PINK","color":"PINK","size":null},{"page":47,"pr_code":"PR210794812","full_code":"04-24-09-018-006-VERDE","color":"VERDE","size":null},{"page":48,"pr_code":"PR210794831","full_code":"04-24-10-003-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":49,"pr_code":"PR210794832","full_code":"04-24-10-003-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":50,"pr_code":"PR210794838","full_code":"04-24-12-001-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":51,"pr_code":"PR210794844","full_code":"04-24-56-001-035-OFF","color":"OFF","size":"M"},{"page":52,"pr_code":"PR210794844","full_code":"04-24-56-001-035-OFF","color":"OFF","size":null},{"page":53,"pr_code":"PR210794848","full_code":"04-25-01-011-016-ROXO","color":"ROXO","size":"P"},{"page":54,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":55,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":56,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":57,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":58,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":59,"pr_code":"PR210794947","full_code":"04-26-01-333-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":60,"pr_code":"PR210794961","full_code":"04-26-01-341-001-BRANCO","color":"BRANCO","size":null},{"page":61,"pr_code":"PR210794962","full_code":"04-26-01-341-001-BRANCO","color":"BRANCO","size":null},{"page":62,"pr_code":"PR210794970","full_code":null,"color":null,"size":"P"},{"page":63,"pr_code":"PR210794974","full_code":null,"color":null,"size":"PADO"},{"page":64,"pr_code":"PR210795050","full_code":"04-26-02-541-002-PRETO","color":"PRETO","size":null},{"page":65,"pr_code":"PR210795073","full_code":"04-26-02-552-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":66,"pr_code":"PR210795074","full_code":"04-26-02-552-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":67,"pr_code":"PR210795118","full_code":"04-26-03-098-043-PINK","color":"PINK","size":null},{"page":68,"pr_code":"PR210795188","full_code":"04-26-05-258-053-LISTRADO","color":"LISTRADO","size":null},{"page":69,"pr_code":"PR210795188","full_code":"04-26-05-258-053-LISTRADO","color":"LISTRADO","size":null},{"page":70,"pr_code":"PR210795189","full_code":"04-26-05-258-053-LISTRADO","color":"LISTRADO","size":"G"},{"page":71,"pr_code":"PR210795200","full_code":"04-26-05-267-035-OFF","color":"OFF","size":"M"},{"page":72,"pr_code":"PR210795200","full_code":"04-26-05-267-035-OFF","color":"OFF","size":"M"},{"page":73,"pr_code":"PR210795200","full_code":"04-26-05-267-035-OFF","color":"OFF","size":"M"},{"page":74,"pr_code":"PR210795200","full_code":"04-26-05-267-035-OFF","color":"OFF","size":"M"},{"page":75,"pr_code":"PR210795200","full_code":"04-26-05-267-035-OFF","color":"OFF","size":"M"},{"page":76,"pr_code":"PR210795205","full_code":"04-26-05-268-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":77,"pr_code":"PR210795206","full_code":"04-26-05-268-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":78,"pr_code":"PR210795251","full_code":"04-26-08-141-002-PRETO","color":"PRETO","size":"M"},{"page":79,"pr_code":"PR210795251","full_code":"04-26-08-141-002-PRETO","color":"PRETO","size":null},{"page":80,"pr_code":"PR210795251","full_code":"04-26-08-141-002-PRETO","color":"PRETO","size":"M"},{"page":81,"pr_code":"PR210795327","full_code":"04-26-08-255-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":82,"pr_code":"PR210795450","full_code":"04-26-11-504-002-PRETO","color":"PRETO","size":"P"},{"page":83,"pr_code":"PR210795468","full_code":"04-26-12-377-006-VERDE","color":"VERDE","size":null},{"page":84,"pr_code":"PR210795468","full_code":"04-26-12-377-006-VERDE","color":"VERDE","size":null},{"page":85,"pr_code":"PR210795474","full_code":"04-26-12-377-043-PINK","color":"PINK","size":"P"},{"page":86,"pr_code":"PR210795474","full_code":"04-26-12-377-043-PINK","color":"PINK","size":null},{"page":87,"pr_code":"PR210795538","full_code":"04-26-13-239-053-LISTRADO","color":"LISTRADO","size":"P"},{"page":88,"pr_code":"PR210795538","full_code":"04-26-13-239-053-LISTRADO","color":"LISTRADO","size":"P"},{"page":89,"pr_code":"PR210795538","full_code":"04-26-13-239-053-LISTRADO","color":"LISTRADO","size":"P"},{"page":90,"pr_code":"PR210795544","full_code":"04-26-13-241-002-PRETO","color":"PRETO","size":null},{"page":91,"pr_code":"PR210795575","full_code":"04-26-17-029-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":92,"pr_code":"PR210795585","full_code":"04-26-17-031-007-BEGE","color":"BEGE","size":null},{"page":93,"pr_code":"PR210795585","full_code":"04-26-17-031-007-BEGE","color":"BEGE","size":null},{"page":94,"pr_code":"PR210795585","full_code":"04-26-17-031-007-BEGE","color":"BEGE","size":"M"},{"page":95,"pr_code":"PR210795614","full_code":"04-26-18-006-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":96,"pr_code":"PR210795622","full_code":"04-26-54-005-002-PRETO","color":"PRETO","size":null},{"page":97,"pr_code":"PR210795622","full_code":"04-26-54-005-002-PRETO","color":"PRETO","size":null},{"page":98,"pr_code":"PR210795623","full_code":"04-26-54-005-002-PRETO","color":"PRETO","size":"M"},{"page":99,"pr_code":"PR210795623","full_code":"04-26-54-005-002-PRETO","color":"PRETO","size":null},{"page":100,"pr_code":"PR219351378","full_code":"04-23-07-278-029-TURQUESA","color":"TURQUESA","size":null},{"page":101,"pr_code":"PR219351390","full_code":"04-24-01-367-002-PRETO","color":"PRETO","size":"PP"},{"page":102,"pr_code":"PR219351392","full_code":"04-24-02-005-035-OFF","color":"OFF","size":null},{"page":103,"pr_code":"PR219351396","full_code":"04-24-04-051-001-BRANCO","color":"BRANCO","size":"M"},{"page":104,"pr_code":"PR219351398","full_code":null,"color":null,"size":null},{"page":105,"pr_code":"PR219351401","full_code":"04-26-01-430-024-NATURAL","color":"NATURAL","size":"M"},{"page":106,"pr_code":"PR219351402","full_code":"04-26-02-533-035-OFF","color":"OFF","size":"P"},{"page":107,"pr_code":"PR219351402","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":108,"pr_code":"PR219351402","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":109,"pr_code":"PR219351403","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":110,"pr_code":"PR219351403","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":111,"pr_code":"PR219351403","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":112,"pr_code":"PR219351403","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":113,"pr_code":"PR219351403","full_code":"04-26-02-533-035-OFF","color":"OFF","size":null},{"page":114,"pr_code":"PR219351407","full_code":"04-26-02-546-035-OFF","color":"OFF","size":"U"},{"page":115,"pr_code":"PR219351407","full_code":"04-26-02-546-035-OFF","color":"OFF","size":"U"},{"page":116,"pr_code":"PR219351407","full_code":"04-26-02-546-035-OFF","color":"OFF","size":"U"},{"page":117,"pr_code":"PR219351407","full_code":"04-26-02-546-035-OFF","color":"OFF","size":"U"},{"page":118,"pr_code":"PR219351423","full_code":"04-26-08-212-002-PRETO","color":"PRETO","size":"M"},{"page":119,"pr_code":"PR219351423","full_code":"04-26-08-212-002-PRETO","color":"PRETO","size":null},{"page":120,"pr_code":"PR219351423","full_code":"04-26-08-212-002-PRETO","color":"PRETO","size":null},{"page":121,"pr_code":"PR219351430","full_code":"04-26-08-310-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":122,"pr_code":"PR219351433","full_code":"04-26-11-585-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":123,"pr_code":"PR219351437","full_code":"04-26-12-443-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":124,"pr_code":"PR219351447","full_code":"04-23-06-355-007-BEGE","color":"BEGE","size":null},{"page":125,"pr_code":"PR219351447","full_code":"04-23-06-355-007-BEGE","color":"BEGE","size":null},{"page":126,"pr_code":"PR219351447","full_code":"04-23-06-355-007-BEGE","color":"BEGE","size":null},{"page":127,"pr_code":"PR219351450","full_code":"04-26-05-415-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":128,"pr_code":"PR219351454","full_code":"04-26-08-338-054-ESTAMPADO","color":"ESTAMPADO","size":"PADO"},{"page":129,"pr_code":"PR219351474","full_code":"04-25-03-018-004-AZUL","color":"AZUL","size":null},{"page":130,"pr_code":"PR219351474","full_code":"04-25-03-018-004-AZUL","color":"AZUL","size":null},{"page":131,"pr_code":"PR219351487","full_code":"04-23-08-410-029-TURQUESA","color":"TURQUESA","size":"M"},{"page":132,"pr_code":"PR219351487","full_code":"04-23-08-410-029-TURQUESA","color":"TURQUESA","size":"M"},{"page":133,"pr_code":"PR219351497","full_code":"04-26-11-635-002-PRETO","color":"PRETO","size":null}];
+
+const COLOR_STYLE = {
+  VERMELHO:{bg:'#fff5f5',text:'#c53030',dot:'#e53e3e'},PRETO:{bg:'#2d3748',text:'#f7fafc',dot:'#1a202c'},
+  LARANJA:{bg:'#fffaf0',text:'#c05621',dot:'#ed8936'},PINK:{bg:'#fff5f7',text:'#97266d',dot:'#ed64a6'},
+  CAQUI:{bg:'#faf5e4',text:'#744210',dot:'#b7791f'},ESTAMPADO:{bg:'#faf5ff',text:'#553c9a',dot:'#9f7aea'},
+  FERRUGEM:{bg:'#fff5f0',text:'#9c4221',dot:'#c05621'},KRAFT:{bg:'#fefcbf',text:'#744210',dot:'#d69e2e'},
+  BRANCO:{bg:'#f7fafc',text:'#2d3748',dot:'#e2e8f0'},OFF:{bg:'#f5f0e8',text:'#5f4b2a',dot:'#b7a898'},
+  ROXO:{bg:'#faf5ff',text:'#6b21a8',dot:'#a855f7'},VERDE:{bg:'#f0fff4',text:'#276749',dot:'#48bb78'},
+  AZUL:{bg:'#ebf8ff',text:'#2c5282',dot:'#4299e1'},TURQUESA:{bg:'#e6fffa',text:'#234e52',dot:'#38b2ac'},
+  LISTRADO:{bg:'#f0f4ff',text:'#3c4a8a',dot:'#667eea'},NATURAL:{bg:'#fefce8',text:'#713f12',dot:'#ca8a04'},
+  BEGE:{bg:'#fdf6ec',text:'#92400e',dot:'#d97706'},
+};
+const DS = {bg:'#edf2f7',text:'#4a5568',dot:'#a0aec0'};
+const sf = c => COLOR_STYLE[c] || DS;
+
+const colorCounts = {};
+RAW.filter(e=>e.color).forEach(e=>{ colorCounts[e.color]=(colorCounts[e.color]||0)+1; });
+
+let currentResults = [];
+const pageQty = {}; // page -> quantidade
+
+function buildChips() {
+  const wrap = document.getElementById('chips');
+  Object.keys(colorCounts).sort().forEach(color => {
+    const s = sf(color);
+    const chip = document.createElement('div');
+    chip.className = 'chip'; chip.id = 'chip-'+color;
+    chip.style.cssText = `background:${s.bg};color:${s.text};`;
+    chip.innerHTML = `<div class="chip-dot" style="background:${s.dot}"></div>${color} <span style="opacity:0.6;font-weight:400">(${colorCounts[color]})</span>`;
+    chip.onclick = () => { document.getElementById('searchInput').value=color; doSearch(); };
+    wrap.appendChild(chip);
+  });
+}
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim().toUpperCase();
+  if (!q) { clearSearch(); return; }
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  const chip = document.getElementById('chip-'+q);
+  if (chip) chip.classList.add('active');
+  currentResults = RAW.filter(e => e.color && e.color.includes(q));
+  renderTable();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  currentResults = [];
+  updatePrintBar();
+  document.getElementById('statsText').textContent = 'Selecione ou pesquise uma cor para começar';
+  document.getElementById('hintText').style.display = 'none';
+  document.getElementById('tableWrap').innerHTML = `<div class="empty"><div class="empty-icon">🎨</div><h3>Nenhuma busca realizada</h3><p>Clique em uma cor acima ou digite no campo de busca</p></div>`;
+}
+
+function getSorted() {
+  const sort = document.getElementById('sortSelect').value;
+  const res = [...currentResults];
+  if (sort==='pr')   res.sort((a,b)=>(a.pr_code||'').localeCompare(b.pr_code||''));
+  else if(sort==='size') res.sort((a,b)=>(a.size||'ZZ').localeCompare(b.size||'ZZ'));
+  else res.sort((a,b)=>a.page-b.page);
+  return res;
+}
+
+function renderTable() {
+  const res = getSorted();
+  const q = document.getElementById('searchInput').value.trim().toUpperCase();
+  const wrap = document.getElementById('tableWrap');
+  const hint = document.getElementById('hintText');
+
+  if (!res.length) {
+    document.getElementById('statsText').textContent = `Nenhuma etiqueta encontrada para "${q}"`;
+    hint.style.display = 'none';
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Sem resultados para "${q}"</h3><p>Tente outra cor</p></div>`;
+    return;
+  }
+
+  const uniquePR = new Set(res.map(e=>e.pr_code)).size;
+  document.getElementById('statsText').innerHTML = `<strong>${res.length}</strong> etiquetas · <strong>${uniquePR}</strong> códigos PR únicos`;
+  hint.style.display = 'block';
+
+  let rows = '';
+  res.forEach((e, idx) => {
+    const s = sf(e.color);
+    const hasCode = !!e.full_code;
+    const qty = pageQty[e.page] || 0;
+    const hasQty = qty > 0;
+    const sizeStr = e.size && e.size!=='PADO' ? `<span class="size-badge">${e.size}</span>` : '<span style="color:#cbd5e0">—</span>';
+
+    rows += `
+      <tr class="${hasQty ? 'has-qty' : ''}">
+        <td class="td-page">pág. ${e.page}</td>
+        <td><span class="td-pr">${e.pr_code||'—'}</span></td>
+        <td>${e.full_code ? `<span class="td-code">${e.full_code}</span>` : '<span style="color:#cbd5e0">—</span>'}</td>
+        <td>${sizeStr}</td>
+        <td><span class="color-badge" style="background:${s.bg};color:${s.text}"><span class="chip-dot" style="background:${s.dot};border:1px solid rgba(0,0,0,0.1)"></span>${e.color||'—'}</span></td>
+        <td class="td-qty">
+          ${hasCode ? `
+            <div class="qty-wrap">
+              <button class="qty-btn minus" onclick="changeQty(${e.page},-1,this)">−</button>
+              <input class="qty-input${hasQty?' active':''}" type="number" min="0" max="9999"
+                value="${qty||''}" placeholder="0" data-page="${e.page}"
+                oninput="setQty(${e.page},this)"
+                onclick="event.stopPropagation()"
+              />
+              <button class="qty-btn plus" onclick="changeQty(${e.page},+1,this)">+</button>
+            </div>
+          ` : '<span style="color:#cbd5e0;font-size:0.8rem">—</span>'}
+        </td>
+      </tr>`;
+  });
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Página</th>
+        <th>Código PR</th>
+        <th>Código Completo</th>
+        <th>Tam.</th>
+        <th>Cor</th>
+        <th class="th-qty">🔢 Quantidade</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  updatePrintBar();
+}
+
+function setQty(page, input) {
+  const val = parseInt(input.value) || 0;
+  const tr = input.closest('tr');
+  if (val <= 0) {
+    delete pageQty[page];
+    input.value = '';
+    input.classList.remove('active');
+    tr.classList.remove('has-qty');
+  } else {
+    pageQty[page] = val;
+    input.classList.add('active');
+    tr.classList.add('has-qty');
+  }
+  updatePrintBar();
+}
+
+function changeQty(page, delta, btn) {
+  const input = btn.closest('tr').querySelector('.qty-input');
+  const tr    = btn.closest('tr');
+  const cur   = pageQty[page] || 0;
+  const novo  = Math.max(0, cur + delta);
+  if (novo === 0) {
+    delete pageQty[page];
+    input.value = '';
+    input.classList.remove('active');
+    tr.classList.remove('has-qty');
+  } else {
+    pageQty[page] = novo;
+    input.value = novo;
+    input.classList.add('active');
+    tr.classList.add('has-qty');
+  }
+  updatePrintBar();
+}
+
+function selectAll() {
+  getSorted().filter(e=>e.full_code).forEach(e=>{ if(!pageQty[e.page]) pageQty[e.page]=1; });
+  renderTable();
+}
+
+function deselectAll() {
+  getSorted().forEach(e => delete pageQty[e.page]);
+  renderTable();
+}
+
+function updatePrintBar() {
+  const totalQty = Object.values(pageQty).reduce((s,v)=>s+v,0);
+  const bar = document.getElementById('printBar');
+  if (totalQty === 0) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  document.getElementById('selCount').textContent = totalQty + (totalQty===1?' cópia':' cópias');
+  document.getElementById('printBarTitle').textContent = 'prontas para imprimir';
+  const items = RAW.filter(e=>pageQty[e.page]>0);
+  const preview = items.slice(0,3).map(e=>`${e.pr_code} ×${pageQty[e.page]}`).join(' · ');
+  document.getElementById('printBarDetail').textContent = preview + (items.length>3 ? ` +${items.length-3} mais` : '');
+}
+
+// ════════════════════════════
+// 🦓 EXPORTAR PARA ZEBRA .TXT
+// ════════════════════════════
+function doZebra() {
+  const items = RAW.filter(e => e.full_code && pageQty[e.page] > 0);
+  if (!items.length) { showToast('Defina a quantidade de pelo menos uma etiqueta!', 'error'); return; }
+
+  let zpl = '';
+  let total = 0;
+
+  items.forEach(e => {
+    const qty     = pageQty[e.page];
+    const tamanho = (e.size && e.size !== 'PADO') ? 'TAM-' + e.size : '';
+    const codigo  = e.pr_code  || '';
+    const codigo2 = e.full_code || '';
+
+    for (let i = 0; i < qty; i++) {
+      zpl += `^XA\n`;
+      zpl += `^PW800\n`;
+      zpl += `^LL240\n`;
+      zpl += `^LS0\n`;
+      if (tamanho) {
+        zpl += `^CF0,30\n`;
+        zpl += `^FO0,5^FB800,10,0,C^FD${tamanho}^FS\n`;
+      }
+      zpl += `^FO340,35\n`;
+      zpl += `^BQN,2,3\n`;
+      zpl += `^FDLA,${codigo2}^FS\n`;
+      zpl += `^CF1,26\n`;
+      zpl += `^FO0,125^FB800,1,0,C^FD${codigo}^FS\n`;
+      zpl += `^CF0,20\n`;
+      zpl += `^FO0,155^FB800,1,0,C^FD${codigo2}^FS\n`;
+      zpl += `^XZ\n\n`;
+      total++;
+    }
+  });
+
+  const blob = new Blob([zpl], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `etiquetas_zebra_${total}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`✅ ${total} etiqueta${total>1?'s':''} exportada${total>1?'s':''} para Zebra!`, 'success');
+}
+
+// ── Impressão normal ──
+function doPrint() {
+  const items = RAW.filter(e => e.full_code && pageQty[e.page] > 0);
+  if (!items.length) { showToast('Defina a quantidade de pelo menos uma etiqueta!', 'error'); return; }
+  const area = document.getElementById('printArea');
+  area.innerHTML = '';
+  items.forEach(e => {
+    for (let i = 0; i < pageQty[e.page]; i++) {
+      const label = document.createElement('div'); label.className = 'lp-label';
+      const qrCol = document.createElement('div'); qrCol.className = 'lp-qr-col';
+      const qrEl  = document.createElement('div'); qrCol.appendChild(qrEl); label.appendChild(qrCol);
+      new QRCode(qrEl, { text: e.full_code, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+      const textCol = document.createElement('div'); textCol.className = 'lp-text-col';
+      if (e.size && e.size !== 'PADO') { const t = document.createElement('div'); t.className='lp-tam'; t.textContent='TAM-'+e.size; textCol.appendChild(t); }
+      const pr = document.createElement('div'); pr.className='lp-pr'; pr.textContent=e.pr_code||''; textCol.appendChild(pr);
+      const cd = document.createElement('div'); cd.className='lp-code'; cd.textContent=e.full_code; textCol.appendChild(cd);
+      label.appendChild(textCol); area.appendChild(label);
+    }
+  });
+  setTimeout(() => window.print(), 450);
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => { t.className = `toast ${type}`; }, 3500);
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+buildChips();
+</script>
+</body>
+</html>
